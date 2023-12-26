@@ -1,6 +1,8 @@
 const User = require('../models/User.js')
 const generateID = require('../helpers/generateID.js')
 const generateJWT = require('../helpers/generateJWT.js')
+const { emailRegister, emailForgot } = require('../helpers/email.js')
+
 
 const register = async (req, res) => {
     const { email } = req.body;
@@ -15,11 +17,18 @@ const register = async (req, res) => {
     try {
         const newUser = new User(req.body);
         newUser.token = generateID();
-        const savedUser = await newUser.save();
-        return res.json(savedUser);
+        await newUser.save();
+        emailRegister({
+            name: newUser.name,
+            email, 
+            token: newUser.token
+        })
+        return res.json({
+            message: 'Se registró exitosamente, revise su correo para confirmar su cuenta'
+        });
     } catch (error) {
         console.error(error)
-        return res.json({
+        return res.status(400).json({
             message: error.message
         })
     }
@@ -31,13 +40,13 @@ const login = async (req, res) => {
     if (!user) {
         const error = new Error('El usuario no existe')
         return res.status(404).json({
-            msg: error.message
+            message: error.message
         })
     }
     if (!user.confirmation) {
         const error = new Error('El usuario no está confirmado')
         return res.status(401).json({
-            msg: error.message
+            message: error.message
         })
     }
 
@@ -52,8 +61,8 @@ const login = async (req, res) => {
         })
     } else {
         const error = new Error('La contraseña es incorrecta')
-        return res.json({
-            msg: error.message
+        return res.status(400).json({
+            message: error.message
         })
     }
 }
@@ -63,22 +72,20 @@ const confirm = async (req, res) => {
     const user = await User.findOne({
         token
     })
-
     if (!user) {
-        const error = new Error('El token no existe')
+        const error = new Error('El token no es válido')
         return res.status(404).json({
-            msg: error.message
+            message: error.message
         })
     }
     try {
         user.confirmation = true;
         user.token = "";
         await user.save();
-        return res.json({ msg: 'La cuenta fue verificada exitosamente' })
+        return res.json({ message: 'La cuenta fue verificada exitosamente' })
     } catch (error) {
-        console.error(error)
         return res.json(
-            { msg: error.message }
+            { message: error.message }
         )
     }
 }
@@ -90,20 +97,32 @@ const forgotPassword = async (req, res) => {
     })
     if (!user) {
         const error = new Error('El usuario no existe')
-        return res.json({
-            msg: error.message
+        return res.status(404).json({
+            message: error.message
         })
     }
+    if (!user.confirmation) {
+        const error = new Error('El usuario no está confirmado')
+        return res.status(404).json({
+            message: error.message
+        })
+    }
+
     try {
         user.token = generateID();
         await user.save();
+        emailForgot({
+            email: user.email,
+            name: user.name,
+            token: user.token
+        })
         return res.json({
-            msg: 'Le hemos enviado el enlace con las instrucciones para recuperar su contraseña al correo'
+            message: 'Le hemos enviado el enlace con las instrucciones para recuperar su contraseña al correo'
         })
     } catch (error) {
         console.error(error)
         return res.json(
-            { msg: error.message }
+            { message: error.message }
         )
     }
 }
@@ -117,10 +136,10 @@ const confirmPassword = async (req, res) => {
     if (!user) {
         const error = new Error('El token no existe')
         return res.status(404).json({
-            msg: error.message
+            message: error.message
         })
     }
-    return res.json({ msg: 'El token es válido' })
+    return res.json({ message: 'El token es válido' })
 
 }
 
@@ -131,14 +150,14 @@ const newPassword = async (req, res) => {
     if (typeof password !== 'string') {
         const error = new Error('La contraseña debe ser una cadena')
         return res.status(404).json({
-            msg: error.message
+            message: error.message
         })
     }
 
     if (password === '') {
         const error = new Error('La contraseña no puede ser una cadena vacía')
         return res.status(404).json({
-            msg: error.message
+            message: error.message
         })
     }
 
@@ -149,7 +168,7 @@ const newPassword = async (req, res) => {
     if (!user) {
         const error = new Error('El token no existe')
         return res.status(404).json({
-            msg: error.message
+            message: error.message
         })
     }
 
@@ -157,11 +176,11 @@ const newPassword = async (req, res) => {
         user.token = "";
         user.password = password;
         await user.save();
-        return res.json({ msg: 'La contraseña se modificó con éxito' })
+        return res.json({ message: 'La contraseña se modificó con éxito' })
     } catch (error) {
         console.error(error)
         return res.json(
-            { msg: error.message }
+            { message: error.message }
         )
     }
 }

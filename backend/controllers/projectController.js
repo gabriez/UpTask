@@ -6,22 +6,22 @@ const getProjects = async (req, res) => {
         const projects = await Project.find().where('creator').equals(req.user.id)
         return res.json(projects)
     } catch (error) {
-        return res.json({ msg: error.message })
+        return res.json({ message: error.message })
     }
 }
 const createProject = async (req, res) => {
     const data = req.body;
     if (!data.name) {
         const error = new Error('El nombre del proyecto no puede estar vacío')
-        return res.status(400).json({ msg: error.message });
+        return res.status(400).json({ message: error.message });
     }
     if (!data.description) {
         const error = new Error('La descripción del proyecto no puede estar vacío')
-        return res.status(400).json({ msg: error.message });
+        return res.status(400).json({ message: error.message });
     }
     if (!data.client) {
         const error = new Error('El nombre del cliente no puede estar vacío')
-        return res.status(400).json({ msg: error.message });
+        return res.status(400).json({ message: error.message });
     }
 
     const project = new Project(req.body);
@@ -31,9 +31,8 @@ const createProject = async (req, res) => {
         const newProject = await project.save();
         return res.json(newProject)
     } catch (error) {
-        return res.status(400).json({ msg: error.message })
+        return res.status(400).json({ message: error.message })
     }
-
 
 }
 const getProject = async (req, res) => {
@@ -42,16 +41,16 @@ const getProject = async (req, res) => {
     try {
         project = await Project.findById(id);
     } catch (error) {
-        return res.json({ msg: error.message })
+        return res.json({ message: error.message })
     }
 
     if (!project) {
         const error = new Error('Recurso no encontrado');
-        return res.status(404).json({ msg: error.message })
+        return res.status(404).json({ message: error.message })
     }
     if (project.creator.toString() !== req.user.id.toString()) {
         const error = new Error('Acceso no autorizado');
-        return res.status(401).json({ msg: error.message })
+        return res.status(401).json({ message: error.message })
     }
 
    
@@ -62,7 +61,7 @@ const getProject = async (req, res) => {
             tasks
         })
     } catch (error) {
-        return res.json({ msg: error.message })
+        return res.json({ message: error.message })
     }
 }
 const updateProject = async (req, res) => {
@@ -71,11 +70,11 @@ const updateProject = async (req, res) => {
         const project = await Project.findById(id);
         if (!project) {
             const error = new Error('Recurso no encontrado');
-            return res.status(404).json({ msg: error.message })
+            return res.status(404).json({ message: error.message })
         }
         if (project.creator.toString() !== req.user.id.toString()) {
             const error = new Error('Acceso no autorizado');
-            return res.status(401).json({ msg: error.message })
+            return res.status(401).json({ message: error.message })
         }
 
         project.name = req.body.name || project.name;
@@ -86,7 +85,7 @@ const updateProject = async (req, res) => {
         const savedProject = await project.save();
         res.json(savedProject);
     } catch (error) {
-        return res.json({ msg: error.message })
+        return res.json({ message: error.message })
     }
 }
 const deleteProject = async (req, res) => {
@@ -95,16 +94,16 @@ const deleteProject = async (req, res) => {
         const project = await Project.findById(id);
         if (!project) {
             const error = new Error('Recurso no encontrado');
-            return res.status(404).json({ msg: error.message })
+            return res.status(404).json({ message: error.message })
         }
         if (project.creator.toString() !== req.user.id.toString()) {
             const error = new Error('Acceso no autorizado');
-            return res.status(401).json({ msg: error.message })
+            return res.status(401).json({ message: error.message })
         }
         await project.deleteOne()
-        return res.json({ msg: 'Proyecto eliminado con éxito' });
+        return res.json({ message: 'Proyecto eliminado con éxito' });
     } catch (error) {
-        return res.json({ msg: error.message })
+        return res.json({ message: error.message })
     }
 }
 const addColaborator = async (req, res) => { }
