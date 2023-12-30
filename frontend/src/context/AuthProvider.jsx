@@ -10,7 +10,8 @@ const AuthProvider = ({ children }) => {
     const tokenLS = localStorage.getItem('token') ?? '';
     const [token, setToken] = useState(tokenLS);
     const [auth, setAuth] = useState({});
-    const [loadingAuth, setLoadingAuth] = useState(true)
+    const [loadingAuth, setLoadingAuth] = useState(true);
+
     useEffect(() => {
         const getAuthInfo = () => {
             const config = {
@@ -41,12 +42,21 @@ const AuthProvider = ({ children }) => {
         }
     }, [token])
 
+    const handleLogout = () => {
+        setAuth({});
+        setToken('');
+        localStorage.setItem('token', '')
+    }
+
+
+
     return (
         <AuthContext.Provider value={{
             setToken,
             auth,
             loadingAuth,
-            token
+            token,
+            handleLogout
         }}>
             {children}
         </AuthContext.Provider>

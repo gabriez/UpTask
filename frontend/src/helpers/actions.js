@@ -1,15 +1,17 @@
 import Joi from 'joi';
-import { json } from 'react-router-dom';
-import { instance } from '../config/axiosClient';
+import { json, redirect } from 'react-router-dom';
+import { configAxios, instance } from '../config/axiosClient';
+import { toast } from 'react-toastify';
 const API_URL = import.meta.env.VITE_API_URL
 
-function formDataToObject(form) {
+const formDataToObject = form => {
     let formObject = {};
     for (const [key, value] of form.entries()) {
         formObject[key] = value;
     }
     return formObject
 }
+
 
 /* 
 ----------------------------------------------------
@@ -238,9 +240,9 @@ export const actionNewPassword = async ({ request, params }) => {
         )
     }
     try {
-        const {password} = value
+        const { password } = value
 
-        const { data } = await instance.post(`${API_URL}/users/confirm-password/${token}`, {password});
+        const { data } = await instance.post(`${API_URL}/users/confirm-password/${token}`, { password });
         return json({
             success: true,
             message: data.message,
@@ -293,7 +295,7 @@ const schemaLogin = Joi.object({
     }),
 })
 
-export const actionLogin = async ({request}) => {
+export const actionLogin = async ({ request }) => {
     const form = await request.formData();
     let formObject = formDataToObject(form);
     const { error, value } = schemaLogin.validate({
@@ -310,8 +312,6 @@ export const actionLogin = async ({request}) => {
     }
 
     try {
-        
-
         const { data } = await instance.post(`${API_URL}/users/login`, value);
         return json({
             success: true,
@@ -325,5 +325,356 @@ export const actionLogin = async ({request}) => {
                 error: err.response.data
             }
         )
+    }
+}
+
+/* 
+----------------------------------------------------
+---SCHEMA AND ACTION CREATE AND EDIT PROJECT--------
+----------------------------------------------------
+*/
+
+const schemaECProject = Joi.object({
+    name: Joi.string().min(3).required().error(errors => {
+        errors.forEach(err => {
+            switch (err.code) {
+                case "string.empty":
+                    err.message = "El campo no puede estar vacío";
+                    break;
+                case "string.min":
+                    err.message = "Debe tener mínimo 3 carácteres";
+                    break;
+                default:
+                    break;
+            }
+        });
+        return errors;
+    }),
+    description: Joi.string().trim().min(20).required().error(errors => {
+        errors.forEach(err => {
+            switch (err.code) {
+                case "string.empty":
+                    err.message = "El campo no puede estar vacío";
+                    break;
+                case "string.min":
+                    err.message = "Debe tener mínimo 20 carácteres";
+                    break;
+                default:
+                    break;
+            }
+        });
+        return errors;
+    }),
+    dateDeliver: Joi.date().greater('now').required().error(errors => {
+        errors.forEach(err => {
+            switch (err.code) {
+                case "date.base":
+                    err.message = "El campo no puede estar vacío";
+                    break;
+                case "date.greater":
+                    err.message = "La fecha de entrega no puede ser menor a la actual";
+                    break;
+                default:
+                    break;
+            }
+        });
+        return errors;
+    }),
+    client: Joi.string().min(3).required().error(errors => {
+        errors.forEach(err => {
+            switch (err.code) {
+                case "string.empty":
+                    err.message = "El campo no puede estar vacío";
+                    break;
+                case "string.min":
+                    err.message = "Debe tener mínimo 3 carácteres";
+                    break;
+                default:
+                    break;
+            }
+        });
+        return errors;
+    })
+})
+
+export const actionCProject = async ({ request }) => {
+    const form = await request.formData();
+    const formObject = formDataToObject(form);
+    const { error, value } = schemaECProject.validate({
+        name: formObject.name,
+        description: formObject.description,
+        dateDeliver: formObject.dateDeliver,
+        client: formObject.client
+    }, { abortEarly: false })
+
+    if (error) {
+        return json(
+            {
+                error: error.details
+            }
+        )
+    }
+
+    try {
+        const { data } = await instance.post(`${API_URL}/projects`, value, configAxios());
+
+        return json({
+            success: true,
+            message: data.message,
+            project: data.project,
+            edit: false
+        })
+    } catch (err) {
+        return json(
+            {
+                error: err.response.data
+            }
+        )
+    }
+}
+
+export const actionEProject = async ({ request, params }) => {
+    const form = await request.formData();
+    const { id } = params;
+    const formObject = formDataToObject(form);
+    const { error, value } = schemaECProject.validate({
+        name: formObject.name,
+        description: formObject.description,
+        dateDeliver: formObject.dateDeliver,
+        client: formObject.client
+    }, { abortEarly: false })
+
+    if (error) {
+        return json(
+            {
+                error: error.details
+            }
+        )
+    }
+
+    try {
+        const { data } = await instance.put(`${API_URL}/projects/${id}`, value, configAxios());
+
+        return json({
+            success: true,
+            message: data.message,
+            project: data.project,
+            edit: true
+        })
+    } catch (err) {
+        return json(
+            {
+                success: false,
+                error: err.response.data
+            }
+        )
+    }
+}
+
+/* 
+----------------------------------------------------
+---------------ACTION DELETE PROJECT----------------
+----------------------------------------------------
+*/
+
+export const actionDProject = async ({ params }) => {
+    const { id } = params;
+
+    try {
+        const { data } = await instance.delete(`${API_URL}/projects/${id}`, configAxios());
+        toast.success(data.message)
+
+        return {
+            success: true
+        }
+
+    } catch (err) {
+        toast.error(err.response.data.message)
+
+        return {
+            success: false
+        }
+        
+    }
+}
+
+
+/* 
+----------------------------------------------------
+---------------ACTION ADD AND EDIT TASK----------------------
+----------------------------------------------------
+*/
+
+const schemaTask = Joi.object({
+    title: Joi.string().min(3).required().error(errors => {
+        errors.forEach(err => {
+            switch (err.code) {
+                case "string.empty":
+                    err.message = "El campo no puede estar vacío";
+                    break;
+                case "string.min":
+                    err.message = "Debe tener mínimo 3 carácteres";
+                    break;
+                default:
+                    break;
+            }
+        });
+        return errors;
+    }),
+    description: Joi.string().trim().min(20).required().error(errors => {
+        errors.forEach(err => {
+            switch (err.code) {
+                case "string.empty":
+                    err.message = "El campo no puede estar vacío";
+                    break;
+                case "string.min":
+                    err.message = "Debe tener mínimo 20 carácteres";
+                    break;
+                default:
+                    break;
+            }
+        });
+        return errors;
+    }),
+    priority: Joi.string().valid('Baja', 'Media', 'Alta').required().error(errors => {
+        errors.forEach(err => {
+            switch (err.code) {
+                case "string.empty":
+                    err.message = "El campo no puede estar vacío";
+                    break;
+                case "any.only":
+                    err.message = "Las prioridades válidas son: Baja, Media, Alta";
+                    break;
+                default:
+                    break;
+            }
+        });
+        return errors;
+    }),
+    dateDeliver: Joi.date().required().error(errors => {
+        errors.forEach(err => {
+            switch (err.code) {
+                case "date.base":
+                    err.message = "El campo no puede estar vacío";
+                    break;
+                case "date.greater":
+                    err.message = "La fecha de entrega debe ser mayor a ayer";
+                    break;
+                default:
+                    break;
+            }
+        });
+        return errors;
+    })
+})
+
+export const actionATask = async ({request}) => {
+
+    const form = await request.formData();
+    const formObject = formDataToObject(form);
+    const projectID = sessionStorage.getItem('projectID');
+    sessionStorage.removeItem('projectID');
+
+    const {error, value} = schemaTask.validate({
+        title: formObject.title,
+        description: formObject.description,
+        priority: formObject.priority,
+        dateDeliver: formObject.dateDeliver
+    }, { abortEarly: false })
+
+  
+
+    if (error) {
+        return json(
+            {
+                error: error.details
+            }
+        )
+    }
+
+    try {
+        const { data } = await instance.post(`${API_URL}/tasks`, { ...value, project: projectID }, configAxios());
+        toast.success(data.message)
+        return json({
+            success: true,
+            task: data.task,
+        })
+    } catch (err) {
+        toast.error(err.response.data.message)
+
+        return json(
+            {
+                success: false,
+                error: err.response.data
+            }
+        )
+    }
+
+}
+
+export const actionETask = async ({request, params}) => {
+    const form = await request.formData();
+    const { id } = params;
+    const formObject = formDataToObject(form);
+    const {error, value} = schemaTask.validate({
+        title: formObject.title,
+        description: formObject.description,
+        priority: formObject.priority,
+        dateDeliver: formObject.dateDeliver
+    }, { abortEarly: false })
+
+
+    if (error) {
+        return json(
+            {
+                error: error.details
+            }
+        )
+    }
+
+    try {
+        const { data } = await instance.put(`${API_URL}/tasks/${id}`, { ...value }, configAxios());
+        toast.success(data.message)
+        return json({
+            success: true,
+            task: data.task,
+        })
+    } catch (err) {
+        toast.error(err.response.data.message)
+
+        return json(
+            {
+                success: false,
+                error: err.response.data
+            }
+        )
+    }
+}
+
+/* 
+----------------------------------------------------
+---------------ACTION DELETE TASK----------------------
+----------------------------------------------------
+*/
+
+
+export const actionDTask = async ({ params }) => {
+    const { id } = params;
+
+    try {
+        const { data } = await instance.delete(`${API_URL}/tasks/${id}`, configAxios());
+        toast.success(data.message)
+
+        return {
+            success: true
+        }
+
+    } catch (err) {
+        toast.error(err.response.data.message)
+
+        return {
+            success: false
+        }
+        
     }
 }

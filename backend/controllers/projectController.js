@@ -3,7 +3,7 @@ const Tasks = require('../models/Tasks.js')
 
 const getProjects = async (req, res) => {
     try {
-        const projects = await Project.find().where('creator').equals(req.user.id)
+        const projects = await Project.find().where('creator').equals(req.user.id).select('-tasks')
         return res.json(projects)
     } catch (error) {
         return res.json({ message: error.message })
@@ -16,7 +16,7 @@ const createProject = async (req, res) => {
         return res.status(400).json({ message: error.message });
     }
     if (!data.description) {
-        const error = new Error('La descripción del proyecto no puede estar vacío')
+        const error = new Error('La descripción del proyecto no puede estar vacía')
         return res.status(400).json({ message: error.message });
     }
     if (!data.client) {
@@ -29,9 +29,9 @@ const createProject = async (req, res) => {
 
     try {
         const newProject = await project.save();
-        return res.json(newProject)
+        return res.json({ message: 'El proyecto fue creado exitosamente', project: newProject})
     } catch (error) {
-        return res.status(400).json({ message: error.message })
+        return res.status(500).json({ message: error.message })
     }
 
 }
@@ -39,9 +39,9 @@ const getProject = async (req, res) => {
     const { id } = req.params;
     let project;
     try {
-        project = await Project.findById(id);
+        project = await Project.findById(id).populate('tasks');
     } catch (error) {
-        return res.json({ message: error.message })
+        console.error(error)
     }
 
     if (!project) {
@@ -53,16 +53,13 @@ const getProject = async (req, res) => {
         return res.status(401).json({ message: error.message })
     }
 
+    return res.json(project)
    
-    try {
-        const tasks = await Tasks.find().where('project').equals(id);
-        return res.json({
-            project, 
-            tasks
-        })
-    } catch (error) {
-        return res.json({ message: error.message })
-    }
+    // try {
+    //     // const tasks = await Tasks.find().where('project').equals(id);
+    // } catch (error) {
+    //     return res.json({ message: error.message })
+    // }
 }
 const updateProject = async (req, res) => {
     const { id } = req.params;
@@ -83,9 +80,9 @@ const updateProject = async (req, res) => {
         project.dateDeliver = req.body.dateDeliver || project.dateDeliver;
 
         const savedProject = await project.save();
-        res.json(savedProject);
+        res.json({ message: 'El proyecto fue actualizado exitosamente', project: savedProject});
     } catch (error) {
-        return res.json({ message: error.message })
+        return res.status(500).json({ message: error.message })
     }
 }
 const deleteProject = async (req, res) => {
@@ -103,7 +100,7 @@ const deleteProject = async (req, res) => {
         await project.deleteOne()
         return res.json({ message: 'Proyecto eliminado con éxito' });
     } catch (error) {
-        return res.json({ message: error.message })
+        return res.status(500).json({ message: error.message })
     }
 }
 const addColaborator = async (req, res) => { }

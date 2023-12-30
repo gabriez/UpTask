@@ -16,7 +16,7 @@ const schemaTasks = new Schema({
         type: Boolean, 
         default: false
     },
-    dateDelivery: {
+    dateDeliver: {
         type: Date, 
         required: true,
         default: Date.now()

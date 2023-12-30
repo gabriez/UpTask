@@ -16,13 +16,15 @@ const addTask = async (req, res) => {
     }
 
     if (req.user.id.toString() !== foundProject.creator.toString()) {
-        const error = new Error('No está autorizado a este recursos')
+        const error = new Error('No está autorizado a este recurso')
         return res.status(401).json({ message: error.message })
     }
 
     try {
         const newTask = await Tasks.create(req.body);
-        return res.json(newTask)
+        foundProject.tasks.push(newTask._id);
+        await foundProject.save();
+        return res.json({ message: 'Tarea creada con éxito', task: newTask})
     } catch (error) {
         return res.status(400).json({ message: error.message })
     }
@@ -65,13 +67,13 @@ const updateTask = async (req, res) => {
     task.title = req.body.title || task.title;
     task.description = req.body.description || task.description;
     task.priority = req.body.priority || task.priority;
-    task.dateDelivery = req.body.dateDelivery || task.dateDelivery;
+    task.dateDeliver = req.body.dateDeliver || task.dateDeliver;
 
     try {
         const keptTask = await task.save();
-        res.json(keptTask)
+        res.json({ message: 'Se actualizó exitosamente la tarea', task: keptTask})
     } catch (error) {
-        return res.status(400).json({ message: error.message })
+        return res.status(500).json({ message: error.message })
     }
 }
 const deleteTask = async (req, res) => { 
